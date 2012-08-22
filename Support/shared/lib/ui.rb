@@ -187,6 +187,27 @@ module TextMate
 
         return return_hash ? options[index] : index
       end
+      
+      def commit(diff, actions = [], statuses = [], files = [])
+        pid = fork do
+          STDOUT.reopen(open('/dev/null'))
+          STDERR.reopen(open('/dev/null'))
+        
+          command = "#{TM_DIALOG} commit"
+          command << " --diff-cmd #{e_sh diff}"
+          plist = { 'action_commands' => actions, 'statuses' => statuses, 'files' => files }.to_plist
+
+          res = ::IO.popen(command, "w+") do |io|
+            io.write plist; io.close_write
+            OSX::PropertyList::load(io) rescue nil
+          end
+        
+          open("/tmp/res-commit-after.txt", "w") do |f|
+            f.write "somebody #{res}"
+          end
+        end
+        return pid
+      end
 
       # request a single, simple string
       def request_string(options = Hash.new,&block)
